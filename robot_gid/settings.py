@@ -39,6 +39,7 @@ INSTALLED_APPS = [
 
     'main.apps.MainConfig',
     'kvants.apps.KvantsConfig',
+    'kvant_projects.apps.KvantProjectsConfig',
 ]
 
 MIDDLEWARE = [
