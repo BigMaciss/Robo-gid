@@ -3,6 +3,7 @@ import cv2
 import numpy as np
 import os
 import pyttsx3
+import PySimpleGUI as sg
 
 # pip install pywin32 python-espeak pyttsx3 py-espeak-ng
 # This is a demo of running face recognition on live video from your webcam. It's a little more complicated than the
@@ -34,6 +35,8 @@ for voice in voices:
 # Get a reference to webcam #0 (the default one)
 ex_path = os.getcwd()
 
+sg.theme('Reddit')
+
 video_capture = cv2.VideoCapture(0)
 
 facesPath = 'encoding.txt'
@@ -43,9 +46,8 @@ namesPath = 'names.txt'
 with open(facesPath, 'r') as f:
     known_face_encodings = list(np.array(i, dtype='float64') for i in [line.split(' ')[:-1] for line in f])
 
-# with open(namesPath, 'r') as f:
-#     known_face_names = f.read().encode('utf-8').split('\n')[:-1]
-known_face_names = ['Миша','Тимофей','Саша','Гриша','Авдей','Арина','Алексей Рубенович','Sam','Никита','Миша', 'Иван Лежнин', 'Иван Николаевич']
+with open(namesPath, 'r', encoding='utf-8') as f:
+    known_face_names = f.read().split('\n')[:-1]
 
 # Initialize some variables
 face_locations = []
@@ -53,9 +55,10 @@ face_encodings = []
 face_names = []
 process_this_frame = True
 count = 0
+last_name = ''
 
 def saveFace(fileF, Face, fileN, Name):
-    with open(fileN, 'a') as f:
+    with open(fileN, 'a', encoding='utf-8') as f:
         f.write(Name + '\n')
     known_face_names.append(Name)
     with open(fileF, 'a') as f:
@@ -94,30 +97,33 @@ while True:
 
             # Or instead, use the known face with the smallest distance to the new face
             face_distances = face_recognition.face_distance(known_face_encodings, face_encoding)
-            print((face_distances))
+            print(face_distances)
             best_match_index = np.argmin(face_distances)
-            name = known_face_names[best_match_index]
             if matches[best_match_index]:
-                if name == 'Иван Лежнин' or 'Алексей Рубенович':
-                    tts.say('Здравствуйте, ' + name)
-                else:
-                    print(known_face_names)
-                    tts.say('Привет, '+name)
-                tts.runAndWait()
-                print(name)
+                name = known_face_names[best_match_index]
+                if last_name != name:
+                    if name == 'Иван Лежнин' and name == 'Алексей Рубенович':
+                        tts.say('Здравствуйте, ' + name)
+                    else:
+                        tts.say('Привет, '+name)
+                    tts.runAndWait()
+                    last_name = name
+            print(name)
+
 
 
             face_names.append(name)
 
-        if len(face_names) > 0:
-            if face_names[0] == 'Unknown':
-                count += 1
-                if count == 3:
-                    _name = input('Впишите имя ')
-                    if(_name != '-'):
-                        saveFace(facesPath, face_encodings[0], namesPath, _name)
-                    count = 0
-            else: count = 0
+            if len(face_names) > 0:
+                if face_names[0] == 'Unknown':
+                    count += 1
+                    if count == 3:
+                        event, values = sg.Window('Неопознаное лицо', [[sg.Text('Впишите имя')],[sg.InputText(), sg.Button('Отправить')]]).read(close=True)
+                        if event == 'Отправить':
+                            sg.popup(f'Ваше лицо записано, {values[0]}')
+                            saveFace(facesPath, face_encodings[0], namesPath, values[0])
+                        count = 0
+                else: count = 0
 
     process_this_frame = not process_this_frame
 
